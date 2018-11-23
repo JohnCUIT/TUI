@@ -17,7 +17,17 @@ def get_ch_and_continue():
     stdscr.nodelay(1)
     return True
 
-def unset_win():
+def initScreen():
+    #使用颜色首先需要调用这个方法
+    curses.start_color()
+    curses.use_default_colors()
+    curses.init_pair(1, curses.COLOR_GREEN, -1)
+    #关闭屏幕回显
+    curses.noecho()
+    #输入时不需要回车确认
+    curses.cbreak()
+
+def exitScreen():
     '''控制台重置'''
     global stdstr
     #恢复控制台默认设置（若不恢复，会导致即使程序结束退出了，控制台仍然是没有回显的）
@@ -31,14 +41,6 @@ class WidgetBase:
     def __init__(self, parent=0, x=0, y=0, w=0, h=0):
         if 0 == parent:
             self.screen = curses.initscr()
-            #使用颜色首先需要调用这个方法
-            curses.start_color()
-            curses.use_default_colors()
-            curses.init_pair(1, curses.COLOR_GREEN, -1)
-            #关闭屏幕回显
-            curses.noecho()
-            #输入时不需要回车确认
-            curses.cbreak()
         else:
             self.screen = parent.screen.derwin(h, w, y, x)
             self.parent = parent
@@ -73,6 +75,7 @@ class MenuList(WidgetBase):
 
 if __name__=='__main__':
     try:
+        initScreen()
         win = WidgetBase()
         win.Display(30,1,'Svn Tool Box V1.0',1)
         win.Border()
@@ -95,5 +98,5 @@ if __name__=='__main__':
     except Exception,e:
         raise e
     finally:
-        unset_win()
+        exitScreen()
 
