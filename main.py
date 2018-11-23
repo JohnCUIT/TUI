@@ -17,23 +17,6 @@ def get_ch_and_continue():
     stdscr.nodelay(1)
     return True
 
-def set_win():
-    '''''控制台设置'''
-    global stdscr
-    #使用颜色首先需要调用这个方法
-    curses.start_color()
-    curses.use_default_colors()
-    #文字和背景色设置，设置了两个color pair，分别为1和2
-    curses.init_pair(1, curses.COLOR_GREEN, -1)
-    curses.init_pair(2, curses.COLOR_RED, -1)
-#    curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
-    #关闭屏幕回显
-    curses.noecho()
-    #输入时不需要回车确认
-    curses.cbreak()
-    #设置nodelay，使得控制台可以以非阻塞的方式接受控制台输入，超时1秒
-    stdscr.nodelay(1)
-
 def unset_win():
     '''控制台重置'''
     global stdstr
@@ -90,7 +73,6 @@ class MenuList(WidgetBase):
 
 if __name__=='__main__':
     try:
-#        set_win()
         win = WidgetBase()
         win.Display(30,1,'Svn Tool Box V1.0',1)
         win.Border()
