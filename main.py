@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #-*- coding: UTF-8 -*-
 import curses
 import locale
@@ -13,18 +14,26 @@ def execmd(command):
         lines.append(line)
     return lines
 
-def event_loop(stdscr):
+def event_loop(win, app):
+    stdscr=win.screen
     while 1:
         stdscr.nodelay(0)
         c = stdscr.getch()
         if c == ord('p'):
-                outline = execmd("./merge.sh x")
-        elif c == ord('c'):
-                stdscr.erase()
+            outline = execmd("./merge.sh x")
+        elif c == ord('j'):
+            app.setNextMenu()
+        elif c == ord('k'):
+            app.setPrevMenu()
+        elif c == ord('h'):
+            stdscr.erase()
+        elif c == ord('l'):
+            mySvnBox.setWorkSpace()
         elif c == ord('q'):
-                break  # Exit the while()
+            break  # Exit the while()
 
-def exitScreen(mainwin):
+def exitScreen(win):
+    mainwin=win.screen
     '''控制台重置'''
     #恢复控制台默认设置（若不恢复，会导致即使程序结束退出了，控制台仍然是没有回显的）
     curses.nocbreak()
@@ -50,12 +59,17 @@ class WidgetBase:
             self.parent = parent
 
     def Display(self, x, y, str, colorpair = 1):
-        self.screen.addstr(y, x, str, curses.color_pair(colorpair))
+        self.screen.addnstr(y, x, str, 20, curses.color_pair(colorpair))
+        self.screen.addstr(y+10, x, str[0:5], curses.color_pair(colorpair))
         self.screen.refresh()
 
     def Border(self):
-        self.screen.border()
+        self.screen.border('|','|','-','-','|','|','|','|')
         self.screen.refresh()
+
+    def Clear(self):
+        self.screen.clear()
+        self.Border()
 
 class MenuList(WidgetBase):
     def __init__(self, parent=0, x=0, y=0, w=0, h=0):
@@ -70,39 +84,67 @@ class MenuList(WidgetBase):
     def AppendItem(self, Item):
         self.items.append(Item)
         index = len(self.items)
-        self.Display(3, index+1, str(Item[0]))
+        self.Display(3, index+1, Item)
 
     def SetCurrentItem(self, index):
         self.currentIndex = index
-        self.Display(1, index+1, '->')
+        for i in range(0, len(self.items)):
+            if i+1 == index:
+                self.Display(1, i+2, '->')
+            else:
+                self.Display(1, i+2, '  ')
+
+class SVNBox:
+    def __init__(self, parent=0, x=0, y=0, w=50, h=30):
+        self.window = WidgetBase(parent)
+        self.window.Border()
+
+        self.sidebar = MenuList(self.window, 1, 2, 16, h)
+
+        self.workspace = WidgetBase(self.window, 17, 2, w-17, h)
+        self.workspace.Border()
+
+    def setBoxTital(self, tital):
+        self.window.Display(30,1,tital,1)
+
+    def setMenuList(self, itemlist):
+        for number in range(0, len(itemlist)):
+            self.sidebar.AppendItem(`number+1`+'.'+itemlist[number])
+        self.sidebar.SetCurrentItem(1)
+
+    def setNextMenu(self):
+        self.sidebar.SetCurrentItem(self.sidebar.currentIndex % len(self.sidebar.items)+1)
+
+    def setPrevMenu(self):
+        self.sidebar.SetCurrentItem((self.sidebar.currentIndex + len(self.sidebar.items)-2) % len(self.sidebar.items)+1)
+
+    def setWorkSpace(self):
+        menu = self.sidebar.currentIndex
+        if 1 == menu:
+            lines = execmd("./merge.sh x")
+        elif 2 == menu:
+            lines = execmd("./merge.sh g")
+        elif 3 == menu:
+            lines = execmd("./merge.sh h")
+        elif 4 == menu:
+            lines = execmd("./merge.sh s")
+        else:
+            lines = ['']
+        self.workspace.Clear()
+        for i in range(len(lines)):
+            self.workspace.Display(1,i+1, lines[i])
 
 if __name__=='__main__':
     try:
-#        desktop = initScreen()
-        win = WidgetBase()
-        win.Display(30,1,'Svn Tool Box V1.0',1)
-        win.Border()
+        myScreen = WidgetBase()
+        x,y=myScreen.screen.getmaxyx()
+        mySvnBox = SVNBox(myScreen, 0, 0, y-1, x-3)
+        mySvnBox.setBoxTital("Svn Tool Box V1.0")
+        mySvnBox.setMenuList(['更新', '合并', '提交', '浏览'])
 
-        menuWin = MenuList(win, 1, 3, 15, 30)
-        menuWin.AppendItem(["1.更新"])
-        menuWin.AppendItem(["2.合并"])
-        menuWin.AppendItem(["3.提交"])
-        menuWin.AppendItem(["4.浏览"])
-        menuWin.SetCurrentItem(4)
-
-        mainWin = WidgetBase(win, 17, 3, 100, 30)
-        mainWin.Border()
-        mainWin.Display(1,2, execmd("cat merge.sh")[2])
-#        testWin = WidgetBase(mainWin, 2, 2, 80, 4)
-#        testWin.Border()
-#        testWin.Display(3,1, execmd("ls -l")[2])
-
-
-#        get_ch_and_continue(win.screen)
-        event_loop(win.screen)
+        event_loop(myScreen, mySvnBox)
     except Exception,e:
         raise e
     finally:
-#        testWin.Display(3,2, execmd("ls -l")[3])
-        exitScreen(win.screen)
+        exitScreen(myScreen)
 
